@@ -1,0 +1,7 @@
+re/
+*.xapk
+*.apk
+.gradle/
+build/
+local.properties
+.idea/
