@@ -25,8 +25,15 @@ import java.util.UUID
 class AndroidBleTransport(
     private val context: Context,
     private val onServicesDiscovered: ((List<DiscoveredGattService>) -> Unit)? = null,
-    private val onConnectionStateChanged: ((Boolean) -> Unit)? = null
+    private val onConnectionStateChanged: ((Boolean) -> Unit)? = null,
+    private val onMtuChanged: ((Int) -> Unit)? = null,
+    /** Raw notification callback with the source characteristic UUID (passive observation). */
+    private val onNotification: ((UUID, ByteArray) -> Unit)? = null
 ) : BluetoothTransport {
+
+    @Volatile
+    var negotiatedMtu: Int = DEFAULT_MTU
+        private set
 
     private val bluetoothManager = context.getSystemService(Context.BLUETOOTH_SERVICE) as? BluetoothManager
     private val bluetoothAdapter: BluetoothAdapter? = bluetoothManager?.adapter
@@ -68,6 +75,17 @@ class AndroidBleTransport(
                     connectionDeferred.complete(false)
                 }
                 closeGatt()
+            }
+        }
+
+        override fun onMtuChanged(g: BluetoothGatt, mtu: Int, status: Int) {
+            super.onMtuChanged(g, mtu, status)
+            if (status == BluetoothGatt.GATT_SUCCESS) {
+                negotiatedMtu = mtu
+                AppLogger.ble("MTU negotiated: $mtu bytes")
+                onMtuChanged?.invoke(mtu)
+            } else {
+                AppLogger.ble("MTU change failed with status $status (retaining $negotiatedMtu)")
             }
         }
 
@@ -142,6 +160,7 @@ class AndroidBleTransport(
             val data = characteristic.value ?: return
             AppLogger.protocol("RX Notification from ${characteristic.uuid} [${data.size}B]")
             _notificationsFlow.tryEmit(data)
+            onNotification?.invoke(characteristic.uuid, data)
         }
 
         @Deprecated("Deprecated in Java")
@@ -237,5 +256,9 @@ class AndroidBleTransport(
                 }
             }
         }
+    }
+
+    companion object {
+        const val DEFAULT_MTU = 23
     }
 }

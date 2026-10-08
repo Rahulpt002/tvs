@@ -8,6 +8,10 @@ data class DiscoveredBluetoothDevice(
     val rssi: Int,
     val serviceUuids: List<UUID> = emptyList(),
     val isNtorqCandidate: Boolean = false,
+    /** True only when the expected TVS service UUID is actually in the advertisement. */
+    val advertisesTvsService: Boolean = false,
+    /** Manufacturer-specific advertising data: companyId (hex) -> payload (hex). */
+    val manufacturerData: Map<String, String> = emptyMap(),
     val timestamp: Long = System.currentTimeMillis()
 ) {
     val displayName: String

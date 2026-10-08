@@ -45,3 +45,33 @@
    - `TvsProtectedTransportSafetyTest`: 100% pass (Safety interlock verification).
    - `TvsProtocolSimulatorTest`: 100% pass (Simulator reception, state update, speedometer notification).
    - `PacketReplaySystemTest`: 100% pass (Session capture, JSON serialization, restoration).
+
+---
+
+## Phase 2 — Real NTORQ 150 BLE Validation (Implemented)
+
+Moves from static analysis to **controlled real-device observation** (passive only; physical
+transmission stays disabled). New package `com.ntorqnav.bridge.diagnostic` + **Validate** tab.
+
+- **Real-device scanner**: manufacturer data, advertised UUIDs, RSSI; prioritises TVS-service
+  advertisers without hardcoding a device name.
+- **GATT verification**: confirms expected TVS service / `0x5352` / `0x5354`, properties, MTU;
+  subscribes to notifications only on the verified notify characteristic.
+- **Session recorder**: Start/Stop/Export/Replay; JSON schema
+  (device/services/characteristics/events/notifications/timestamps); writes session + report to
+  the app external files dir with share-sheet export.
+- **Frame classification** by observable properties only (length/timing/direction/characteristic/
+  frequency/sequence); opaque payloads reported as `PROTECTED/UNCLASSIFIED`, never decrypted.
+- **Static-vs-observed comparison** that never fabricates a match, feeding
+  `ValidationReportGenerator` → `real-device-validation.md`.
+- **Device identity** (vehicle type / firmware / cluster model / protocol variant) defaults to
+  `UNKNOWN` and is never inferred from the presence of the service UUID.
+
+Safety interlock, write whitelist, and "no key extraction / no protection bypass" rules unchanged.
+
+New tests: `GattVerifierTest`, `FrameClassifierTest`, `DiagnosticSessionRecorderTest`,
+`StaticAnalysisComparatorTest`, `ValidationReportGeneratorTest`, `BluetoothScannerFilterTest`
+(45 tests total, all passing).
+
+See `docs/phase2-real-device-validation.md` (procedure + 12-question deliverable) and
+`docs/real-device-validation.md` (report template, regenerated from a real capture).

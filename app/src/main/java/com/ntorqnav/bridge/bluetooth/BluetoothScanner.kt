@@ -41,13 +41,27 @@ class BluetoothScanner(context: Context) {
 
             val serviceUuids = result.scanRecord?.serviceUuids?.map { it.uuid } ?: emptyList()
             val isNtorq = isNtorqCandidate(name, serviceUuids)
+            val advertisesTvs = serviceUuids.contains(TvsConstants.SERVICE_UUID_NTORQ) ||
+                serviceUuids.contains(TvsConstants.SERVICE_UUID_NTORQ_ALT)
+
+            val manufacturerData = mutableMapOf<String, String>()
+            result.scanRecord?.manufacturerSpecificData?.let { msd ->
+                for (i in 0 until msd.size()) {
+                    val companyId = msd.keyAt(i)
+                    val payload = msd.valueAt(i)
+                    manufacturerData["%04X".format(companyId)] =
+                        payload?.joinToString(" ") { "%02X".format(it) } ?: ""
+                }
+            }
 
             val item = DiscoveredBluetoothDevice(
                 name = name,
                 address = address,
                 rssi = rssi,
                 serviceUuids = serviceUuids,
-                isNtorqCandidate = isNtorq
+                isNtorqCandidate = isNtorq,
+                advertisesTvsService = advertisesTvs,
+                manufacturerData = manufacturerData
             )
 
             _discoveredDevices.update { list ->
@@ -56,7 +70,8 @@ class BluetoothScanner(context: Context) {
                     list.toMutableList().apply { set(existingIndex, item) }
                 } else {
                     (list + item).sortedWith(
-                        compareByDescending<DiscoveredBluetoothDevice> { it.isNtorqCandidate }
+                        compareByDescending<DiscoveredBluetoothDevice> { it.advertisesTvsService }
+                            .thenByDescending { it.isNtorqCandidate }
                             .thenByDescending { it.rssi }
                     )
                 }

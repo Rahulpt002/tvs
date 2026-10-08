@@ -51,6 +51,17 @@
             </intent-filter>
         </activity>
 
+        <!-- Exposes exported diagnostic sessions/reports to the Android share sheet -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+
         <!-- Notification Listener for Google Maps Turn-by-Turn directions -->
         <service
             android:name=".navigation.GoogleMapsNotificationListenerService"

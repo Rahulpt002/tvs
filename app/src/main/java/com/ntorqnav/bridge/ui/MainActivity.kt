@@ -12,6 +12,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Biotech
 import androidx.compose.material.icons.filled.Bluetooth
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Dashboard
@@ -22,6 +23,8 @@ import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.ntorqnav.bridge.bluetooth.NtorqConnectionManager
 import com.ntorqnav.bridge.bridge.NavigationBridge
+import com.ntorqnav.bridge.diagnostic.DiagnosticExporter
+import com.ntorqnav.bridge.diagnostic.DiagnosticSessionRecorder
 import com.ntorqnav.bridge.logging.AppLogger
 import com.ntorqnav.bridge.replay.PacketReplaySystem
 import com.ntorqnav.bridge.simulator.TvsProtocolSimulator
@@ -33,6 +36,8 @@ class MainActivity : ComponentActivity() {
     private lateinit var simulator: TvsProtocolSimulator
     private lateinit var replaySystem: PacketReplaySystem
     private lateinit var bridge: NavigationBridge
+    private lateinit var diagnosticRecorder: DiagnosticSessionRecorder
+    private lateinit var diagnosticExporter: DiagnosticExporter
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -52,6 +57,8 @@ class MainActivity : ComponentActivity() {
         simulator = TvsProtocolSimulator()
         replaySystem = PacketReplaySystem()
         bridge = NavigationBridge(connectionManager, simulator, replaySystem)
+        diagnosticRecorder = DiagnosticSessionRecorder()
+        diagnosticExporter = DiagnosticExporter(applicationContext)
 
         checkAndRequestPermissions()
 
@@ -84,6 +91,12 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = selectedTabIndex == 3,
                                 onClick = { selectedTabIndex = 3 },
+                                icon = { Icon(Icons.Default.Biotech, contentDescription = null) },
+                                label = { Text("Validate") }
+                            )
+                            NavigationBarItem(
+                                selected = selectedTabIndex == 4,
+                                onClick = { selectedTabIndex = 4 },
                                 icon = { Icon(Icons.Default.Code, contentDescription = null) },
                                 label = { Text("Dev Mode") }
                             )
@@ -101,11 +114,16 @@ class MainActivity : ComponentActivity() {
                                 bridge = bridge,
                                 onNavigateToScan = { selectedTabIndex = 1 },
                                 onNavigateToTest = { selectedTabIndex = 2 },
-                                onNavigateToDev = { selectedTabIndex = 3 }
+                                onNavigateToDev = { selectedTabIndex = 4 }
                             )
                             1 -> BluetoothInspectorScreen(connectionManager = connectionManager)
                             2 -> TestNavigationScreen(bridge = bridge)
-                            3 -> DeveloperScreen(bridge = bridge, simulator = simulator, replaySystem = replaySystem)
+                            3 -> DiagnosticScreen(
+                                connectionManager = connectionManager,
+                                recorder = diagnosticRecorder,
+                                exporter = diagnosticExporter
+                            )
+                            4 -> DeveloperScreen(bridge = bridge, simulator = simulator, replaySystem = replaySystem)
                         }
                     }
                 }
